@@ -1,0 +1,29 @@
+{
+	"name": "space_invaders",
+	"version": "1.0.0",
+	"description": "",
+	"main": "index.js",
+	"scripts": {
+		"dev": "tsx watch src/main.ts",
+		"build": "tsc",
+		"start": "node dist/main.js",
+		"typecheck": "tsc --noEmit"
+	},
+	"keywords": [],
+	"author": "",
+	"license": "ISC",
+	"devEngines": {
+		"packageManager": {
+			"name": "pnpm",
+			"version": "12.3.4",
+			"onFail": "download"
+		}
+	},
+	"packageManager": "pnpm@12.3.4",
+	"type": "module",
+	"devDependencies": {
+		"@types/node": "^22.20.1",
+		"tsx": "^4.23.13",
+		"typescript": "^7.0.2"
+	}
+}
