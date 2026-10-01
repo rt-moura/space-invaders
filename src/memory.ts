@@ -1,6 +1,10 @@
 export class Memory {
 	private readonly data = new Uint8Array(0x10000);
 
+	public load(data: Uint8Array, startAddress: number): void {
+		this.data.set(data, startAddress);
+	}
+
 	public writeByte(address: number, value: number): void {
 		this.data[address & 0xffff] = value & 0xff;
 	}
