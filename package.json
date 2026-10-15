@@ -4,9 +4,9 @@
 	"description": "",
 	"main": "index.js",
 	"scripts": {
-		"dev": "tsx watch src/main.ts",
+		"dev": "pnpm build && node tools/server.mjs",
 		"build": "tsc",
-		"start": "node dist/main.js",
+		"start": "node tools/server.mjs",
 		"typecheck": "tsc --noEmit"
 	},
 	"keywords": [],
