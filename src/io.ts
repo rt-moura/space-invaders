@@ -55,7 +55,7 @@ export class IO implements InputOutput {
 				return (this.shiftRegister >> (8 - this.shiftOffset)) & 0xff;
 			}
 			default:
-				throw new Error("Porta de leitura não encontrada");
+				throw new Error(`No read handler for port ${port}.`);
 		}
 	}
 
@@ -84,7 +84,7 @@ export class IO implements InputOutput {
 				break;
 			}
 			default:
-				throw new Error("Porta de escrita não encontrada");
+				throw new Error(`No write handler for port ${port}.`);
 		}
 	}
 }

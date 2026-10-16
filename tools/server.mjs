@@ -33,8 +33,8 @@ createServer(async (request, response) => {
 		response.end(file);
 	} catch {
 		response.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
-		response.end("Arquivo não encontrado. Execute pnpm dev para compilar e servir o emulador.");
+		response.end("File not found. Run pnpm dev to build and serve the emulator.");
 	}
 }).listen(port, "127.0.0.1", () => {
-	console.log(`Emulador disponível em http://localhost:${port}`);
+	console.log(`Emulator available at http://localhost:${port}`);
 });

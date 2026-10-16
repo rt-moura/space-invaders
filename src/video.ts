@@ -14,7 +14,7 @@ export class Video {
 		this.memory = memory;
 
 		const context = canvas.getContext("2d");
-		if (!context) throw new Error("Não foi possível obter o contexto 2D do canvas");
+		if (!context) throw new Error("Failed to get the canvas 2D context.");
 
 		canvas.width = this.videoHeight;
 		canvas.height = this.videoWidth;

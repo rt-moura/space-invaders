@@ -1626,7 +1626,7 @@ export class CPU {
 				return this.CPI(opcode);
 
 			default:
-				throw new Error(`Opcode: 0x${opcode.toString(16).padStart(2, "0").toUpperCase()} não implementado`);
+				throw new Error(`Unimplemented opcode: 0x${opcode.toString(16).padStart(2, "0").toUpperCase()}`);
 		}
 	}
 
