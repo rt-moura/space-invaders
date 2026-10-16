@@ -1,7 +1,7 @@
 {
 	"name": "space_invaders",
 	"version": "1.0.0",
-	"description": "",
+	"description": "Space Invaders emulator",
 	"main": "index.js",
 	"scripts": {
 		"dev": "pnpm build && node tools/server.mjs",
@@ -10,8 +10,8 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"keywords": [],
-	"author": "",
-	"license": "ISC",
+	"author": "Renan Moura",
+	"license": "MIT",
 	"devEngines": {
 		"packageManager": {
 			"name": "pnpm",
