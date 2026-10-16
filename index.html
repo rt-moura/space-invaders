@@ -1,10 +1,11 @@
 <!doctype html>
-<html lang="pt-BR">
+<html lang="en">
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<title>Space Invaders - Emulador</title>
+		<title>Space Invaders - Emulator</title>
 		<style>
+			* { box-sizing: border-box; }
 			:root {
 				color-scheme: dark;
 				font-family: Consolas, "Courier New", monospace;
@@ -14,22 +15,52 @@
 			body {
 				min-height: 100vh;
 				margin: 0;
-				display: grid;
-				place-items: center;
+				padding: 24px;
 			}
-			main { text-align: center; padding: 24px; }
-			h1 { font-size: 1.25rem; font-weight: 400; letter-spacing: 0.15em; }
+			main { width: min(1240px, 100%); margin: 0 auto; }
+			header { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 20px; }
+			h1 { margin: 0; font-size: 1.25rem; font-weight: 400; letter-spacing: 0.15em; }
+			#status { color: #a7ad9e; font-size: 0.85rem; }
+			.workspace { display: grid; grid-template-columns: minmax(300px, 448px) minmax(0, 1fr); align-items: start; gap: 20px; }
+			.panel { min-width: 0; border: 1px solid #526344; background: #141914; }
+			.panel-heading { margin: 0; padding: 12px 14px; border-bottom: 1px solid #35412f; color: #d1f4ad; font-size: 0.85rem; font-weight: 400; letter-spacing: 0.12em; text-transform: uppercase; }
+			.game-panel { padding: 14px; }
+			.game-column { min-width: 0; }
+			.load-controls { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
+			.load-controls button { min-width: 0; width: 100%; padding: 10px 6px; white-space: normal; line-height: 1.2; }
+			#status { grid-column: 1 / -1; margin: 0; }
 			canvas {
 				display: block;
-				width: min(448px, 80vw);
-				height: min(512px, 80vh);
-				margin: 24px auto;
+				width: 100%;
+				max-height: min(70vh, 640px);
+				aspect-ratio: 7 / 8;
+				height: auto;
+				margin: 0 auto;
 				border: 2px solid #526344;
 				background: #000;
 				image-rendering: pixelated;
 			}
-			p { max-width: 34rem; color: #a7ad9e; font-size: 0.9rem; line-height: 1.5; }
-			code { color: #d1f4ad; }
+			.debugger { display: grid; gap: 20px; }
+			.register-content { padding: 14px; }
+			.register-grid { display: grid; grid-template-columns: repeat(4, minmax(70px, 1fr)); gap: 8px; }
+			.register-cell { display: flex; justify-content: space-between; gap: 8px; padding: 8px; border: 1px solid #293329; background: #101410; font-size: 0.85rem; }
+			.register-cell span, .flag-cell span { color: #929b8c; }
+			.register-cell code, .flag-cell code { color: #d1f4ad; }
+			.flags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+			.flag-cell { display: flex; gap: 6px; padding: 6px 8px; border: 1px solid #293329; background: #101410; font-size: 0.78rem; }
+			#cpu-status { margin: 12px 0 0; color: #929b8c; font-size: 0.75rem; }
+			#cpu-status:empty { display: none; }
+			.instruction-list { max-height: min(52vh, 520px); overflow: auto; margin: 0; padding: 8px 0; list-style: none; scrollbar-color: #526344 #101410; }
+			.instruction-columns, .instruction-row { display: grid; grid-template-columns: 3.3rem 3.2rem 5rem 3.5rem 4.5rem minmax(0, 1fr); align-items: baseline; gap: 8px; padding: 6px 8px; }
+			.instruction-columns { color: #829174; font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase; }
+			.instruction-row { border-bottom: 1px solid #242c23; color: #a7ad9e; font-size: 0.78rem; }
+			.instruction-current { position: sticky; top: -8px; z-index: 1; border: 1px solid #526344; background: #20291d; color: #d1f4ad; }
+			.instruction-address, .instruction-bytes { color: #a7ad9e; }
+			.instruction-opcode { color: #a7ad9e; }
+			.instruction-length, .instruction-duration { color: #a7ad9e; text-align: center; }
+			.instruction-column-centered { text-align: center; }
+			.instruction-mnemonic { overflow-wrap: anywhere; color: #d1f4ad; }
+			.instruction-current .instruction-mnemonic { color: #fff; }
 			button {
 				padding: 10px 18px;
 				border: 1px solid #526344;
@@ -38,16 +69,77 @@
 				font: inherit;
 				cursor: pointer;
 			}
-			button:disabled { cursor: wait; opacity: 0.7; }
+			button:disabled { cursor: not-allowed; opacity: 0.55; }
+			@media (max-width: 850px) {
+				body { padding: 16px; }
+				header { align-items: flex-start; flex-direction: column; }
+				.workspace { grid-template-columns: minmax(0, 1fr); }
+				.game-panel { max-width: 520px; width: 100%; margin: 0 auto; }
+				.instruction-list { max-height: 420px; }
+			}
+			@media (max-width: 520px) {
+				.register-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+				.instruction-columns, .instruction-row { min-width: 500px; grid-template-columns: 3.3rem 3.2rem 5rem 3.5rem 4.5rem minmax(0, 1fr); gap: 6px; padding: 6px 8px; font-size: 0.68rem; }
+			}
 		</style>
 	</head>
 	<body>
 		<main>
-			<h1>SPACE INVADERS</h1>
-			<button id="load-rom" type="button">Carregar arquivos da ROM</button>
-			<input id="rom-files" type="file" accept=".h,.g,.f,.e" multiple hidden />
-			<p id="status" role="status" aria-live="polite">Selecione invaders.h, invaders.g, invaders.f e invaders.e.</p>
-			<canvas id="screen" aria-label="Tela do Space Invaders"></canvas>
+			<header>
+				<h1>SPACE INVADERS</h1>
+			</header>
+			<div class="workspace">
+				<div class="game-column">
+					<section class="panel game-panel" aria-label="Game display">
+						<canvas id="screen" aria-label="Space Invaders screen"></canvas>
+					</section>
+					<div class="load-controls">
+						<button id="load-rom" type="button">Load ROM</button>
+						<input id="rom-files" type="file" accept=".h,.g,.f,.e" multiple hidden />
+						<button id="pause-emulation" type="button" disabled>Pause</button>
+						<button id="next-instruction" type="button" disabled>Step instruction</button>
+						<span id="status" role="status" aria-live="polite">Select invaders.h, invaders.g, invaders.f, and invaders.e.</span>
+					</div>
+				</div>
+				<aside class="debugger" aria-label="CPU debugger">
+					<section class="panel" aria-labelledby="register-heading">
+						<h2 id="register-heading" class="panel-heading">CPU registers</h2>
+						<div class="register-content">
+							<div class="register-grid">
+								<div class="register-cell"><span>A</span><code data-register="a">00</code></div>
+								<div class="register-cell"><span>B</span><code data-register="b">00</code></div>
+								<div class="register-cell"><span>C</span><code data-register="c">00</code></div>
+								<div class="register-cell"><span>D</span><code data-register="d">00</code></div>
+								<div class="register-cell"><span>E</span><code data-register="e">00</code></div>
+								<div class="register-cell"><span>H</span><code data-register="h">00</code></div>
+								<div class="register-cell"><span>L</span><code data-register="l">00</code></div>
+								<div class="register-cell"><span>PSW</span><code data-register="psw">0000</code></div>
+								<div class="register-cell"><span>BC</span><code data-register="bc">0000</code></div>
+								<div class="register-cell"><span>DE</span><code data-register="de">0000</code></div>
+								<div class="register-cell"><span>HL</span><code data-register="hl">0000</code></div>
+								<div class="register-cell"><span>PC</span><code data-register="pc">0000</code></div>
+								<div class="register-cell"><span>SP</span><code data-register="sp">0000</code></div>
+							</div>
+							<div class="flags" aria-label="Processor flags">
+								<div class="flag-cell"><span>S</span><code data-flag="sign">0</code></div>
+								<div class="flag-cell"><span>Z</span><code data-flag="zero">0</code></div>
+								<div class="flag-cell"><span>AC</span><code data-flag="auxiliaryCarry">0</code></div>
+								<div class="flag-cell"><span>P</span><code data-flag="parity">0</code></div>
+								<div class="flag-cell"><span>CY</span><code data-flag="carry">0</code></div>
+							</div>
+							<p id="cpu-status"></p>
+						</div>
+					</section>
+					<section class="panel" aria-labelledby="instruction-heading">
+						<h2 id="instruction-heading" class="panel-heading">Instruction trace</h2>
+						<div class="instruction-columns" aria-hidden="true">
+							<span>Address</span><span>Opcode</span><span>Bytes</span><span class="instruction-column-centered">Length</span><span class="instruction-column-centered">Duration</span><span>Mnemonic</span>
+						</div>
+						<ol id="instruction-list" class="instruction-list" aria-live="off">
+						</ol>
+					</section>
+				</aside>
+			</div>
 		</main>
 		<script type="module" src="/dist/main.js"></script>
 	</body>

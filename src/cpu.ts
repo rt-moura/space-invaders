@@ -34,6 +34,13 @@ export interface InputOutput {
 
 export type Instruction = { mnemonic: string; length: number; duration: number; opcode: number; execute(): void };
 
+export type InstructionTrace = {
+	address: number | null;
+	bytes: number[];
+	interrupt: boolean;
+	data: Instruction;
+};
+
 export class CPU {
 	private registers: Registers;
 	private readonly memory: Memory;
@@ -42,7 +49,7 @@ export class CPU {
 	private interruptsEnabled = false;
 	private interruptEnableDelay = 0;
 	private cycles = 0;
-	private cycleWatcher?: (cycles: number) => void;
+	private instructionWatcher?: (instruction: InstructionTrace) => void;
 
 	constructor(memory: Memory, inputOutput: InputOutput = { read: () => 0, write: () => {} }) {
 		this.memory = memory;
@@ -58,8 +65,37 @@ export class CPU {
 		this.cycles = 0;
 	}
 
-	public watch(callback: (cycles: number) => void): void {
-		this.cycleWatcher = callback;
+	public watchInstructions(callback: (instruction: InstructionTrace) => void): void {
+		this.instructionWatcher = callback;
+	}
+
+	public getNextInstruction(): InstructionTrace | null {
+		if (this.halted) return null;
+
+		const address = this.registers.pc;
+		const opcode = this.memory.readByte(address);
+		return this.describeInstruction(address, this.getInstruction(opcode));
+	}
+
+	private describeInstruction(address: number, instruction: Instruction): InstructionTrace {
+		const bytes = Array.from({ length: instruction.length }, (_, offset) =>
+			this.memory.readByte((address + offset) & 0xffff),
+		);
+		let mnemonic = instruction.mnemonic;
+
+		if (instruction.length === 2) {
+			mnemonic = mnemonic.replace("d8", `0x${bytes[1].toString(16).padStart(2, "0").toUpperCase()}`);
+		} else if (instruction.length === 3) {
+			const word = bytes[1] | (bytes[2] << 8);
+			mnemonic = mnemonic.replace(/d16|a16/, `0x${word.toString(16).padStart(4, "0").toUpperCase()}`);
+		}
+
+		return {
+			address,
+			bytes,
+			interrupt: false,
+			data: { ...instruction, mnemonic },
+		};
 	}
 
 	public getState() {
@@ -104,8 +140,18 @@ export class CPU {
 		this.halted = false;
 
 		const instruction = this.getInstruction(opcode & 0xff);
+		const vector = ((opcode >> 3) & 0x07) << 3;
 		instruction.execute();
 		this.cycles += instruction.duration;
+		this.instructionWatcher?.({
+			address: null,
+			bytes: [opcode & 0xff],
+			interrupt: true,
+			data: {
+				...instruction,
+				mnemonic: `${instruction.mnemonic} (INTERRUPT → 0x${vector.toString(16).padStart(4, "0").toUpperCase()})`,
+			},
+		});
 
 		return true;
 	}
@@ -1590,7 +1636,9 @@ export class CPU {
 			return 4;
 		}
 
+		const address = this.registers.pc;
 		const instruction = this.getInstruction(this.fetchNextByte());
+		const trace = this.describeInstruction(address, instruction);
 
 		instruction.execute();
 
@@ -1604,6 +1652,7 @@ export class CPU {
 		}
 
 		this.cycles += instruction.duration;
+		this.instructionWatcher?.(trace);
 
 		return instruction.duration;
 	}
@@ -1611,10 +1660,8 @@ export class CPU {
 	run(cycles: number): void {
 		while (this.cycles < cycles) {
 			this.step();
-			this.cycleWatcher?.(this.cycles);
 		}
 
 		this.cycles -= cycles;
-		this.cycleWatcher?.(this.cycles);
 	}
 }
